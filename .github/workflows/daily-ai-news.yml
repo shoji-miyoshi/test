@@ -1,0 +1,34 @@
+name: Daily AI News Notification
+
+on:
+  schedule:
+    # 07:00 JST == 22:00 UTC (previous day)
+    - cron: "0 22 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Fetch AI news
+        run: python3 scripts/fetch_ai_news.py > news-body.md
+
+      - name: Create notification issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "AI最新ニュース $(date -u -d '+9 hours' +'%Y-%m-%d')" \
+            --body-file news-body.md \
+            --assignee "${{ github.repository_owner }}"
