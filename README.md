@@ -8,8 +8,9 @@
 
 - `.github/workflows/daily-ai-news.yml`: 毎日 22:00 UTC (07:00 JST) に実行されるスケジュールワークフロー。
   `workflow_dispatch` で手動実行も可能です。
-- `scripts/fetch_ai_news.py`: Google News RSS (`q=AI`, 日本語/日本地域) から最新記事を取得し、
-  Markdown 形式のニュース一覧を標準出力に出力します。
+- `scripts/fetch_ai_news.py`: Google News RSS (`q=AI`, 日本語/日本地域) から記事を取得し、
+  直近24時間以内 (`MAX_AGE_HOURS`) の記事を新しい順に最大20件 (`MAX_ITEMS`) まで、
+  Markdown 形式のニュース一覧として標準出力に出力します。
 
 ## 通知を受け取るには
 
