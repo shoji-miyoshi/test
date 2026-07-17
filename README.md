@@ -1,16 +1,25 @@
-# AI最新ニュース デイリー通知
+# デイリー通知 (AIニュース / Zenn AI関連人気記事)
 
-毎日 7:00 (JST) に GitHub Actions が AI 関連の最新ニュースを取得し、このリポジトリに Issue を作成します。
+毎日 7:00 (JST) に GitHub Actions が情報を取得し、このリポジトリに Issue を作成します。
 作成された Issue はリポジトリオーナーにアサインされるため、GitHub の通知メールが自動的に届きます
 (追加の SMTP/API キーの設定は不要です)。
 
-## 仕組み
+## AI最新ニュース
 
 - `.github/workflows/daily-ai-news.yml`: 毎日 22:00 UTC (07:00 JST) に実行されるスケジュールワークフロー。
   `workflow_dispatch` で手動実行も可能です。
 - `scripts/fetch_ai_news.py`: Google News RSS (`q=AI`, 日本語/日本地域) から記事を取得し、
   直近24時間以内 (`MAX_AGE_HOURS`) の記事を新しい順に最大20件 (`MAX_ITEMS`) まで、
   Markdown 形式のニュース一覧として標準出力に出力します。
+
+## Zenn AI関連人気記事
+
+- `.github/workflows/daily-zenn-ai-articles.yml`: 毎日 22:00 UTC (07:00 JST) に実行されるスケジュールワークフロー。
+  `workflow_dispatch` で手動実行も可能です。
+- `scripts/fetch_zenn_ai_articles.py`: Zenn の公開 API からAI関連トピック
+  (`ai`, `llm`, `生成ai`, `machinelearning` など、スクリプト内 `TOPICS` で変更可能) の
+  デイリー人気記事を取得・重複排除し、いいね数順に最大20件 (`MAX_ITEMS`) を
+  Markdown 形式の記事一覧として標準出力に出力します。
 
 ## 通知を受け取るには
 
