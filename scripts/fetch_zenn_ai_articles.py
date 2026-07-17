@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch popular AI-related Zenn articles and print a Markdown summary."""
+"""Fetch recent popular AI-related Zenn articles and print a Markdown summary."""
 import datetime
 import json
 import sys
@@ -18,10 +18,14 @@ TOPICS = [
     "openai",
 ]
 MAX_ITEMS = 20
+MAX_AGE_DAYS = 7
+FETCH_COUNT = 48
 
 
 def fetch_topic_articles(topic: str) -> list:
-    query = urllib.parse.urlencode({"topicname": topic, "order": "daily"})
+    query = urllib.parse.urlencode(
+        {"topicname": topic, "order": "latest", "count": FETCH_COUNT}
+    )
     req = urllib.request.Request(
         f"{API_URL}?{query}", headers={"User-Agent": "Mozilla/5.0"}
     )
@@ -29,7 +33,23 @@ def fetch_topic_articles(topic: str) -> list:
         return json.loads(response.read()).get("articles", [])
 
 
+def is_recent(article: dict, cutoff: datetime.datetime) -> bool:
+    published = article.get("published_at")
+    if not published:
+        return False
+    try:
+        pub_dt = datetime.datetime.fromisoformat(published)
+    except ValueError:
+        return False
+    if pub_dt.tzinfo is None:
+        pub_dt = pub_dt.replace(tzinfo=datetime.timezone.utc)
+    return pub_dt >= cutoff
+
+
 def collect_articles() -> list:
+    cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+        days=MAX_AGE_DAYS
+    )
     seen = set()
     articles = []
     for topic in TOPICS:
@@ -42,6 +62,8 @@ def collect_articles() -> list:
             key = article.get("id") or article.get("path")
             if key is None or key in seen:
                 continue
+            if not is_recent(article, cutoff):
+                continue
             seen.add(key)
             articles.append(article)
     articles.sort(key=lambda a: a.get("liked_count") or 0, reverse=True)
@@ -50,7 +72,7 @@ def collect_articles() -> list:
 
 def build_markdown(articles: list) -> str:
     if not articles:
-        return "本日のAI関連人気記事は見つかりませんでした。"
+        return f"直近{MAX_AGE_DAYS}日以内のAI関連人気記事は見つかりませんでした。"
 
     lines = []
     for article in articles:
@@ -70,9 +92,9 @@ def main() -> int:
     except Exception as exc:  # network or parse failure shouldn't crash the workflow
         body = f"記事の取得中にエラーが発生しました: {exc}"
 
-    print(f"## {today} の Zenn AI関連人気記事\n")
+    print(f"## {today} の Zenn AI関連人気記事（直近{MAX_AGE_DAYS}日）\n")
     print(body)
-    print("\n---\n出典: [Zenn](https://zenn.dev/topics/ai) のAI関連トピック (デイリー人気順)")
+    print("\n---\n出典: [Zenn](https://zenn.dev/topics/ai) のAI関連トピック (直近の新着をいいね数順)")
     return 0
 
 
