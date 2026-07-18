@@ -18,8 +18,9 @@
   `workflow_dispatch` で手動実行も可能です。
 - `scripts/fetch_zenn_ai_articles.py`: Zenn の公開 API からAI関連トピック
   (`ai`, `llm`, `生成ai`, `machinelearning` など、スクリプト内 `TOPICS` で変更可能) の
-  デイリー人気記事を取得・重複排除し、いいね数順に最大20件 (`MAX_ITEMS`) を
-  Markdown 形式の記事一覧として標準出力に出力します。
+  新着記事を取得し、直近 7 日以内 (`MAX_AGE_DAYS`) に公開されたものへ絞り込んだうえで
+  重複排除し、いいね数順に最大20件 (`MAX_ITEMS`) を Markdown 形式の記事一覧として
+  標準出力に出力します（「最近公開された中で人気の記事」を配信します）。
 
 ## 通知を受け取るには
 
