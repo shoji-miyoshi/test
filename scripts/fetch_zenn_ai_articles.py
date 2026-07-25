@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch Zenn AI articles as a two-section digest: newest and most-liked."""
+"""Fetch Zenn AI articles as a two-section digest: recent-with-traction and monthly-popular."""
 import datetime
 import json
 import sys
@@ -17,9 +17,16 @@ TOPICS = [
     "claude",
     "openai",
 ]
-MAX_ITEMS_NEW = 10
+FETCH_COUNT = 100
+
+# 🆕 新着: recently published articles that already have some traction.
+MAX_AGE_DAYS_NEW = 7
+MIN_LIKES_NEW = 3
+MAX_ITEMS_NEW = 20
+
+# 🔥 人気: most-liked articles published in the last month.
+MAX_AGE_DAYS_POPULAR = 30
 MAX_ITEMS_POPULAR = 10
-FETCH_COUNT = 48
 
 
 def fetch_topic_articles(topic: str, order: str) -> list:
@@ -68,15 +75,27 @@ def parse_published(article: dict):
     return dt
 
 
-def top_newest(articles: list, limit: int) -> list:
-    dated = [(parse_published(a), a) for a in articles]
-    dated = [(d, a) for d, a in dated if d is not None]
-    dated.sort(key=lambda t: t[0], reverse=True)
-    return [a for _, a in dated[:limit]]
+def within_days(article: dict, now: datetime.datetime, days: int) -> bool:
+    dt = parse_published(article)
+    if dt is None:
+        return False
+    return dt >= now - datetime.timedelta(days=days)
 
 
-def top_liked(articles: list, limit: int) -> list:
-    return sorted(articles, key=lambda a: a.get("liked_count") or 0, reverse=True)[:limit]
+def select_newest(pool: list, now: datetime.datetime) -> list:
+    candidates = [
+        a
+        for a in pool
+        if within_days(a, now, MAX_AGE_DAYS_NEW) and (a.get("liked_count") or 0) >= MIN_LIKES_NEW
+    ]
+    candidates.sort(key=lambda a: parse_published(a), reverse=True)
+    return candidates[:MAX_ITEMS_NEW]
+
+
+def select_popular(pool: list, now: datetime.datetime) -> list:
+    candidates = [a for a in pool if within_days(a, now, MAX_AGE_DAYS_POPULAR)]
+    candidates.sort(key=lambda a: a.get("liked_count") or 0, reverse=True)
+    return candidates[:MAX_ITEMS_POPULAR]
 
 
 def format_lines(articles: list, empty_msg: str) -> str:
@@ -94,13 +113,19 @@ def format_lines(articles: list, empty_msg: str) -> str:
 
 
 def build_body() -> str:
-    newest = top_newest(collect("latest"), MAX_ITEMS_NEW)
-    popular = top_liked(collect("daily"), MAX_ITEMS_POPULAR)
-    new_section = format_lines(newest, "新着記事は見つかりませんでした。")
-    popular_section = format_lines(popular, "人気記事は見つかりませんでした。")
+    now = datetime.datetime.now(datetime.timezone.utc)
+    pool = collect("latest")
+    newest = select_newest(pool, now)
+    popular = select_popular(pool, now)
+    new_section = format_lines(
+        newest, f"直近{MAX_AGE_DAYS_NEW}日で♥{MIN_LIKES_NEW}以上の新着記事は見つかりませんでした。"
+    )
+    popular_section = format_lines(
+        popular, f"直近{MAX_AGE_DAYS_POPULAR}日の人気記事は見つかりませんでした。"
+    )
     return (
-        f"### 🆕 新着（公開日の新しい順）\n\n{new_section}\n\n"
-        f"### 🔥 人気（いいね数の多い順）\n\n{popular_section}"
+        f"### 🆕 新着（直近{MAX_AGE_DAYS_NEW}日・公開日の新しい順）\n\n{new_section}\n\n"
+        f"### 🔥 人気（直近{MAX_AGE_DAYS_POPULAR}日・いいね数の多い順）\n\n{popular_section}"
     )
 
 
