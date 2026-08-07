@@ -8,9 +8,14 @@
 
 - `.github/workflows/daily-ai-news.yml`: 毎日 22:00 UTC (07:00 JST) に実行されるスケジュールワークフロー。
   `workflow_dispatch` で手動実行も可能です。
-- `scripts/fetch_ai_news.py`: Google News RSS (`q=AI`, 日本語/日本地域) から記事を取得し、
-  直近24時間以内 (`MAX_AGE_HOURS`) の記事を新しい順に最大20件 (`MAX_ITEMS`) まで、
-  Markdown 形式のニュース一覧として標準出力に出力します。
+- `scripts/fetch_ai_news.py`: Google News RSS から、国内 (`hl=ja&gl=JP&ceid=JP:ja`) と
+  海外 (`hl=en-US&gl=US&ceid=US:en`) の2つのフィードで記事を取得し、
+  直近24時間以内 (`MAX_AGE_HOURS`) の記事を新しい順に各最大15件 (`MAX_ITEMS`) まで、
+  「🇯🇵 国内ニュース」「🌍 海外ニュース（日本語訳）」に分けて Markdown 形式で標準出力に出力します。
+  海外ニュースのタイトルは、非公式（APIキー不要）の Google 翻訳エンドポイント
+  (`translate.googleapis.com`) で日本語に翻訳し、元の英語タイトルも「原題:」として併記します。
+  翻訳に失敗した場合は原文のまま表示されます。
+  なお Google News RSS は記事の要約テキストを提供しないため、翻訳対象はタイトルのみです。
 
 ## Zenn AI関連人気記事
 
