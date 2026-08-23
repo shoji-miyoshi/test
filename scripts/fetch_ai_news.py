@@ -15,7 +15,11 @@ DOMESTIC_FEED_URL = "https://news.google.com/rss/search?q=AI&hl=ja&gl=JP&ceid=JP
 OVERSEAS_FEED_URL = "https://news.google.com/rss/search?q=AI&hl=en-US&gl=US&ceid=US:en"
 MAX_ITEMS = 15
 MAX_AGE_HOURS = 24
-TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
+# The unofficial translate.googleapis.com endpoint blocks datacenter IPs
+# (including GitHub Actions runners) even though it works from residential
+# IPs, so it silently failed on every scheduled run. MyMemory is a public,
+# keyless translation API meant for programmatic/CI use.
+TRANSLATE_URL = "https://api.mymemory.translated.net/get"
 
 
 def fetch_feed(url: str) -> ET.Element:
@@ -25,18 +29,22 @@ def fetch_feed(url: str) -> ET.Element:
 
 
 def translate_to_ja(text: str) -> str:
-    """Translate text to Japanese via the unofficial (keyless) Google Translate
-    endpoint. Falls back to the original text if translation fails."""
+    """Translate text to Japanese via the keyless MyMemory API. Falls back to
+    the original text (and logs a warning) if translation fails."""
     if not text:
         return text
-    params = {"client": "gtx", "sl": "auto", "tl": "ja", "dt": "t", "q": text}
+    params = {"q": text, "langpair": "en|ja"}
     url = TRANSLATE_URL + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     try:
         with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode("utf-8"))
-        return "".join(segment[0] for segment in data[0])
-    except Exception:
+        translated = (data.get("responseData") or {}).get("translatedText") or ""
+        if not translated or "MYMEMORY WARNING" in translated.upper():
+            raise ValueError(f"unusable response: {translated[:120]!r}")
+        return translated
+    except Exception as exc:
+        print(f"warning: translation failed for {text!r}: {exc}", file=sys.stderr)
         return text
 
 
