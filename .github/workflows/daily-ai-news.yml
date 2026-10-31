@@ -38,4 +38,4 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow enable "${{ github.workflow }}" --repo "${{ github.repository }}"
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/daily-ai-news.yml/enable"
