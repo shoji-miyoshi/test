@@ -8,6 +8,7 @@ on:
 
 permissions:
   issues: write
+  actions: write
 
 jobs:
   notify:
@@ -32,3 +33,9 @@ jobs:
             --title "Zenn AI関連人気記事 $(date -u -d '+9 hours' +'%Y-%m-%d')" \
             --body-file zenn-body.md \
             --assignee "${{ github.repository_owner }}"
+
+      - name: Keepalive (re-enable this workflow to avoid 60-day auto-disable)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow enable "${{ github.workflow }}" --repo "${{ github.repository }}"

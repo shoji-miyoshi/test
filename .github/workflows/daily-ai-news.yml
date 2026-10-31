@@ -8,6 +8,7 @@ on:
 
 permissions:
   issues: write
+  actions: write
 
 jobs:
   notify:
@@ -32,3 +33,9 @@ jobs:
             --title "AI最新ニュース $(date -u -d '+9 hours' +'%Y-%m-%d')" \
             --body-file news-body.md \
             --assignee "${{ github.repository_owner }}"
+
+      - name: Keepalive (re-enable this workflow to avoid 60-day auto-disable)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow enable "${{ github.workflow }}" --repo "${{ github.repository }}"
